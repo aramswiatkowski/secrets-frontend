@@ -21,8 +21,14 @@ export default function AuthPage() {
       const path = mode === 'login' ? '/auth/login' : '/auth/register'
       const res = await api<{access_token:string}>(path, {
         method: 'POST',
-        body: JSON.stringify({ email, password })
-      })
+        const payload = mode === 'login'
+  ? { username: email, password }
+  : { email, password }
+
+const res = await api<{access_token:string}>(path, {
+  method: 'POST',
+  body: JSON.stringify(payload)
+})
       storage.set('token', res.access_token)
       nav('/app')
     } catch (e: any) {
