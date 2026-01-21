@@ -108,8 +108,6 @@ export default function Library() {
     } finally {
       setSaving(false)
     }
-  }
-
   async function deleteTrick(id: number) {
     setErr('')
     try {
