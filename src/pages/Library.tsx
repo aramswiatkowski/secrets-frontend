@@ -3,7 +3,6 @@ import { api, apiBaseUrl } from '../lib/api'
 import type { Me } from '../lib/types'
 import { Button } from '../components/Button'
 import { Card, CardHeader, CardBody } from '../components/Card'
-import { storage } from '../lib/storage'
 import { useNavigate } from 'react-router-dom'
 
 type Trick = {
@@ -31,10 +30,10 @@ export default function Library() {
   const filtered = React.useMemo(() => {
     const s = q.trim()
     if (!s) return tricks
-    return tricks.filter(t => contains(t.title || '', s) || contains(t.body || '', s))
+    return tricks.filter((t) => contains(t.title || '', s) || contains(t.body || '', s))
   }, [tricks, q])
 
-  // Admin create form (visible, but backend will enforce permissions)
+  // Admin create form (backend will enforce permissions)
   const [showAdmin, setShowAdmin] = React.useState(false)
   const [title, setTitle] = React.useState('')
   const [body, setBody] = React.useState('')
@@ -43,18 +42,15 @@ export default function Library() {
   const [saving, setSaving] = React.useState(false)
 
   React.useEffect(() => {
-    (async () => {
+    ;(async () => {
       setErr('')
       setLoading(true)
       try {
-        const [meRes, tricksRes] = await Promise.all([
-          api<Me>('/me'),
-          api<Trick[]>('/tricks'),
-        ])
+        const [meRes, tricksRes] = await Promise.all([api<Me>('/me'), api<Trick[]>('/tricks')])
         setMe(meRes)
         setTricks(tricksRes || [])
-      } catch (e:any) {
-        setErr(e.message || 'Error')
+      } catch (e: any) {
+        setErr(e?.message || 'Error')
       } finally {
         setLoading(false)
       }
@@ -74,11 +70,9 @@ export default function Library() {
         }),
       })
       nav('/app/community')
-    } catch (e:any) {
-      setErr(e.message || 'Error')
+    } catch (e: any) {
+      setErr(e?.message || 'Error')
     }
-  }
-
   }
 
   async function createTrick() {
@@ -98,28 +92,30 @@ export default function Library() {
           is_vip: vipOnly,
         }),
       })
-      setTricks(prev => [created, ...prev])
+      setTricks((prev) => [created, ...prev])
       setTitle('')
       setBody('')
       setMediaUrl('')
       setVipOnly(false)
-    } catch (e:any) {
-      setErr(e.message || 'Error')
+    } catch (e: any) {
+      setErr(e?.message || 'Error')
     } finally {
       setSaving(false)
     }
+  }
+
   async function deleteTrick(id: number) {
     setErr('')
     try {
       await api(`/tricks/${id}`, { method: 'DELETE' })
-      setTricks(prev => prev.filter(t => t.id !== id))
-    } catch (e:any) {
-      setErr(e.message || 'Error')
+      setTricks((prev) => prev.filter((t) => t.id !== id))
+    } catch (e: any) {
+      setErr(e?.message || 'Error')
     }
   }
 
   const total = tricks.length
-  const vipCount = tricks.filter(t => t.is_vip).length
+  const vipCount = tricks.filter((t) => t.is_vip).length
 
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-4">
@@ -133,19 +129,18 @@ export default function Library() {
             Loaded: <b>{total}</b> tips (VIP-only: <b>{vipCount}</b>).
           </div>
         </div>
-        <Button variant="secondary" onClick={() => setShowAdmin(v => !v)}>
+
+        <Button variant="secondary" onClick={() => setShowAdmin((v) => !v)}>
           {showAdmin ? 'Hide admin tools' : 'Admin tools'}
         </Button>
       </div>
 
       {err ? (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
-          {err}
-        </div>
+        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{err}</div>
       ) : null}
 
       <Card>
-        <CardHeader title="Search tips" subtitle="Type a keyword (e.g., glue, bubbles, varnish, rice paper)."/>
+        <CardHeader title="Search tips" subtitle="Type a keyword (e.g., glue, bubbles, varnish, rice paper)." />
         <CardBody>
           <div className="flex gap-2">
             <input
@@ -167,27 +162,46 @@ export default function Library() {
 
       {showAdmin ? (
         <Card>
-          <CardHeader title="Create a new tip (admin)" subtitle="This will only work if your account is allowed by the backend." />
+          <CardHeader
+            title="Create a new tip (admin)"
+            subtitle="This will only work if your account is allowed by the backend."
+          />
           <CardBody>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <label className="text-xs text-slate-600">Title</label>
-                <input className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={title} onChange={(e)=>setTitle(e.target.value)} />
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+
                 <label className="text-xs text-slate-600">Media URL (optional)</label>
-                <input className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={mediaUrl} onChange={(e)=>setMediaUrl(e.target.value)} />
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  value={mediaUrl}
+                  onChange={(e) => setMediaUrl(e.target.value)}
+                />
+
                 <label className="inline-flex items-center gap-2 text-sm mt-2">
-                  <input type="checkbox" checked={vipOnly} onChange={(e)=>setVipOnly(e.target.checked)} />
+                  <input type="checkbox" checked={vipOnly} onChange={(e) => setVipOnly(e.target.checked)} />
                   VIP only
                 </label>
+
                 <div className="pt-2">
                   <Button onClick={createTrick} disabled={saving}>
                     {saving ? 'Saving…' : 'Create tip'}
                   </Button>
                 </div>
               </div>
+
               <div className="space-y-2">
                 <label className="text-xs text-slate-600">Body</label>
-                <textarea className="w-full min-h-[140px] rounded-lg border border-slate-300 px-3 py-2 text-sm" value={body} onChange={(e)=>setBody(e.target.value)} />
+                <textarea
+                  className="w-full min-h-[140px] rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                />
                 <div className="text-xs text-slate-500">
                   Backend URL: <span className="font-mono">{apiBaseUrl()}</span>
                 </div>
@@ -205,14 +219,12 @@ export default function Library() {
             No tips found for <b>{q.trim()}</b>. Click <b>Ask</b> to post this question in Community.
           </div>
         ) : (
-          filtered.map(t => (
+          filtered.map((t) => (
             <Card key={t.id}>
-              <CardHeader
-                title={t.title}
-                subtitle={t.is_vip ? 'VIP only' : 'Public'}
-              />
+              <CardHeader title={t.title} subtitle={t.is_vip ? 'VIP only' : 'Public'} />
               <CardBody>
                 <div className="text-sm text-slate-700 whitespace-pre-wrap">{t.body}</div>
+
                 {t.media_url ? (
                   <a className="text-sm underline mt-3 inline-block" href={t.media_url} target="_blank" rel="noreferrer">
                     Open media
