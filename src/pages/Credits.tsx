@@ -2,88 +2,97 @@ import React from 'react'
 import { api } from '../lib/api'
 import { Card, CardHeader, CardBody } from '../components/Card'
 import { Button } from '../components/Button'
-
-type Item = { size: 'A4'|'A3', title?: string, variant_id?: string }
+import type { Me } from '../lib/types'
 
 export default function Credits() {
-  const [balance, setBalance] = React.useState(0)
-  const [items, setItems] = React.useState<Item[]>([])
-  const [busy, setBusy] = React.useState(false)
-  const [msg, setMsg] = React.useState('')
+  const [me, setMe] = React.useState<Me | null>(null)
   const [err, setErr] = React.useState('')
+  const [msg, setMsg] = React.useState('')
+  const [add, setAdd] = React.useState('')
 
-  async function refresh() {
-    const b = await api<{balance:number}>('/credits/balance')
-    setBalance(b.balance)
-  }
+  React.useEffect(() => {
+    ;(async () => {
+      setErr('')
+      try {
+        setMe(await api<Me>('/me'))
+      } catch (e:any) {
+        setErr(e?.message || 'Error')
+      }
+    })()
+  }, [])
 
-  React.useEffect(() => { refresh().catch(()=>{}) }, [])
-
-  function add(size: 'A4'|'A3') {
-    setItems([{ size, title: `Rice paper ${size}` }, ...items])
-  }
-
-  const cost = items.reduce((s, it) => s + (it.size === 'A4' ? 1 : 2), 0)
-
-  async function redeem() {
-    setBusy(true); setErr(''); setMsg('')
+  async function addCredits() {
+    if (!me?.is_admin) return
+    const n = parseInt(add, 10)
+    if (!Number.isFinite(n) || n <= 0) {
+      setErr('Enter a positive number.')
+      return
+    }
+    setErr(''); setMsg('')
     try {
-      const res = await api<{credits_used:number, new_balance:number, shopify_order_ref?:string|null}>('/credits/redeem', {
-        method: 'POST',
-        body: JSON.stringify({ items, shipping_required: true })
-      })
-      setMsg(`Redeemed ${res.credits_used} credits. New balance: ${res.new_balance}.` + (res.shopify_order_ref ? ` Draft order: ${res.shopify_order_ref}` : ''))
-      setItems([])
-      await refresh()
-    } catch (e:any) { setErr(e.message || 'Error') }
-    finally { setBusy(false) }
+      await api('/credits/redeem-code', { method: 'POST', body: JSON.stringify({ credits: n }) })
+      setMsg(`Added ${n} credits ✅`)
+      setAdd('')
+      setMe(await api<Me>('/me'))
+    } catch (e:any) {
+      setErr(e?.message || 'Error')
+    }
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+    <div className="max-w-4xl mx-auto p-4 space-y-4">
+      <h1 className="text-2xl font-semibold text-slate-900">Credits</h1>
+      <div className="text-sm text-slate-600">
+        Credits are used for free sheets in VIP plans (A4 = 1 credit, A3 = 2 credits).
+      </div>
+
+      {err ? <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{err}</div> : null}
+      {msg ? <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3">{msg}</div> : null}
+
       <Card>
-        <CardHeader title="Credits wallet" subtitle="1 credit = A4 • A3 = 2 credits" />
+        <CardHeader title="Your wallet" subtitle="Current balance and monthly credits" />
         <CardBody>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <div className="text-xs text-slate-500">Current balance</div>
-              <div className="text-4xl font-bold text-slate-900 mt-1">{balance}</div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={()=>add('A4')}>+ Add A4 (1)</Button>
-              <Button onClick={()=>add('A3')} variant="ghost">+ Add A3 (2)</Button>
-            </div>
+          <div className="text-4xl font-semibold">{me?.credits_balance ?? 0}</div>
+          <div className="text-sm text-slate-700 mt-2">
+            Monthly credits: <b>{me?.monthly_credits ?? 0}</b>
+          </div>
+          <div className="text-sm text-slate-700 mt-1">
+            Plan: <b>{me?.plan || '—'}</b> • VIP discount: <b>{me?.discount_percent ?? 0}%</b>
+          </div>
+          <div className="mt-3 text-sm text-slate-600">
+            Credit costs: A4 = <b>{me?.credit_costs?.A4 ?? 1}</b> • A3 = <b>{me?.credit_costs?.A3 ?? 2}</b>
           </div>
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader title="Redeem credits for sheets" subtitle="MVP: add A4/A3 items. Later: browse your Shopify catalog here." />
+        <CardHeader title="How it works" subtitle="Quick rules" />
         <CardBody>
-          {msg ? <div className="text-sm text-emerald-700 mb-2">{msg}</div> : null}
-          {err ? <div className="text-sm text-red-600 mb-2">{err}</div> : null}
-
-          {items.length === 0 ? (
-            <div className="text-sm text-slate-600">Add items to redeem using the buttons above.</div>
-          ) : (
-            <div className="space-y-2">
-              {items.map((it, idx) => (
-                <div key={idx} className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2">
-                  <div className="text-sm text-slate-800">{it.title || `Rice paper ${it.size}`}</div>
-                  <div className="text-sm text-slate-600">{it.size} • {it.size==='A4'?1:2} credit(s)</div>
-                </div>
-              ))}
-              <div className="flex items-center justify-between pt-2">
-                <div className="text-sm text-slate-700">Total cost</div>
-                <div className="text-lg font-semibold">{cost} credits</div>
-              </div>
-              <Button disabled={busy || cost===0} onClick={redeem} className="w-full">
-                {busy ? 'Redeeming…' : 'Redeem now'}
-              </Button>
-            </div>
-          )}
+          <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
+            <li>1 credit = 1 A4 rice paper sheet.</li>
+            <li>A3 sheet costs 2 credits.</li>
+            <li>Credits are added monthly with your VIP plan.</li>
+            <li>Orders paid with credits don’t earn loyalty points (by design).</li>
+          </ul>
         </CardBody>
       </Card>
+
+      {me?.is_admin ? (
+        <Card>
+          <CardHeader title="Admin: add credits" subtitle="Temporary helper (manual)" />
+          <CardBody>
+            <div className="flex gap-2">
+              <input
+                className="flex-1 border border-slate-200 rounded-xl p-3 text-sm"
+                placeholder="e.g. 4"
+                value={add}
+                onChange={(e) => setAdd(e.target.value)}
+              />
+              <Button onClick={addCredits}>Add</Button>
+            </div>
+          </CardBody>
+        </Card>
+      ) : null}
     </div>
   )
 }

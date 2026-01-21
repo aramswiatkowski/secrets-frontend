@@ -9,27 +9,34 @@ import { useNavigate } from 'react-router-dom'
 export default function Account() {
   const nav = useNavigate()
   const [me, setMe] = React.useState<Me | null>(null)
-  const [nickname, setNickname] = React.useState('')
+  const [displayName, setDisplayName] = React.useState('')
   const [msg, setMsg] = React.useState('')
   const [err, setErr] = React.useState('')
 
   React.useEffect(() => {
-    (async () => {
+    ;(async () => {
       try {
         const m = await api<Me>('/me')
         setMe(m)
-        setNickname(m.nickname || '')
-      } catch (e:any) { setErr(e.message) }
+        setDisplayName(m.display_name || '')
+      } catch (e:any) {
+        setErr(e?.message || 'Error')
+      }
     })()
   }, [])
 
-  async function saveNick() {
+  async function save() {
     setErr(''); setMsg('')
     try {
-      const m = await api<Me>('/me/nickname', { method:'POST', body: JSON.stringify({ nickname }) })
+      const m = await api<Me>('/me/display-name', {
+        method: 'POST',
+        body: JSON.stringify({ display_name: displayName }),
+      })
       setMe(m)
       setMsg('Saved ✅')
-    } catch (e:any) { setErr(e.message) }
+    } catch (e:any) {
+      setErr(e?.message || 'Error')
+    }
   }
 
   function logout() {
@@ -39,32 +46,33 @@ export default function Account() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+      {err ? <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{err}</div> : null}
+      {msg ? <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3">{msg}</div> : null}
+
       <Card>
-        <CardHeader title="Account" subtitle="Nick is required (email stays hidden in Community)." />
+        <CardHeader title="Account" subtitle="Profile settings" />
         <CardBody>
-          {msg ? <div className="text-sm text-emerald-700 mb-2">{msg}</div> : null}
-          {err ? <div className="text-sm text-red-600 mb-2">{err}</div> : null}
+          <div className="text-sm text-slate-700">
+            Email: <b>{me?.email || '—'}</b>
+          </div>
 
-          <div className="grid md:grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <div className="text-xs text-slate-500">Email</div>
-              <div className="text-sm font-semibold mt-1">{me?.email || '—'}</div>
-              <div className="text-xs text-slate-500 mt-3">Plan</div>
-              <div className="text-sm font-semibold mt-1">{me?.plan || '—'} ({me?.subscription_status || '—'})</div>
-            </div>
+          <div className="mt-3">
+            <div className="text-xs text-slate-500 mb-1">Display name (nickname shown in Community)</div>
+            <input
+              className="w-full border border-slate-200 rounded-xl p-3 text-sm"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="e.g. Aram"
+            />
+          </div>
 
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <div className="text-xs text-slate-500">Nickname (public)</div>
-              <input value={nickname} onChange={e=>setNickname(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" placeholder="e.g. DaisyDecoupage" />
-              <div className="mt-2 flex gap-2">
-                <Button onClick={saveNick}>Save</Button>
-                <Button variant="ghost" onClick={logout}>Log out</Button>
-              </div>
-              <div className="text-xs text-slate-500 mt-3">
-                Moderation is automatic: posts with phone/email/address get auto-hidden.
-              </div>
-            </div>
+          <div className="mt-3 flex gap-2 flex-wrap">
+            <Button onClick={save} disabled={!displayName.trim()}>Save</Button>
+            <Button variant="secondary" onClick={logout}>Log out</Button>
+          </div>
+
+          <div className="mt-3 text-xs text-slate-500">
+            Email is not shown publicly — only your display name.
           </div>
         </CardBody>
       </Card>

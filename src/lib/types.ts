@@ -1,19 +1,39 @@
 export type Me = {
+  id: number
   email: string
-  nickname?: string | null
-  plan?: string | null
-  subscription_status: string
-  vip_discount_percent: number
+  display_name: string
+  is_admin: boolean
+  is_vip: boolean
+  plan: string
+  discount_percent: number
+  monthly_credits: number
+  credits_balance: number
+  credit_costs: Record<string, number>
+}
+
+export type Trick = {
+  id: number
+  title: string
+  body: string
+  media_url?: string | null
+  is_vip: boolean
+  created_at: string
 }
 
 export type Post = {
   id: number
-  kind: 'question' | 'showcase'
-  title?: string | null
-  content: string
+  user_id: number
+  author_display_name: string
+  text: string
   image_url?: string | null
-  status: string
-  risk_flags?: string | null
   created_at: string
-  author_nickname?: string | null
+}
+
+export type Comment = {
+  id: number
+  post_id: number
+  user_id: number
+  author_display_name: string
+  text: string
+  created_at: string
 }

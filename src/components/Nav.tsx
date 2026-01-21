@@ -11,13 +11,15 @@ export function TopNav() {
           <img src="/favicon.svg" className="w-8 h-8" />
           <div>
             <div className="text-sm font-semibold">Secrets of Decoupage VIP</div>
-            <div className="text-xs text-slate-500">Library • Credits • Community</div>
+            <div className="text-xs text-slate-500">Tricks & Tips • Credits • Community</div>
           </div>
         </div>
         <div className="flex gap-2">
           <NavLink to="/app" className={linkClass} end>Home</NavLink>
+          <NavLink to="/app/library" className={linkClass}>Tricks</NavLink>
           <NavLink to="/app/credits" className={linkClass}>Credits</NavLink>
           <NavLink to="/app/community" className={linkClass}>Community</NavLink>
+          <NavLink to="/app/plans" className={linkClass}>Plans</NavLink>
           <NavLink to="/app/account" className={linkClass}>Account</NavLink>
         </div>
       </div>

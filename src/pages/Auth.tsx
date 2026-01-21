@@ -13,6 +13,44 @@ export default function AuthPage() {
   const [err, setErr] = React.useState('')
   const [busy, setBusy] = React.useState(false)
 
+  type PublicTrick = {
+    id: number
+    title: string
+    body: string
+    media_url?: string | null
+    is_vip: boolean
+    created_at: string
+  }
+
+  const [tip, setTip] = React.useState<PublicTrick | null>(null)
+  const [tipLoading, setTipLoading] = React.useState(false)
+
+  async function loadTip() {
+    setTipLoading(true)
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const res = await fetch(`${API_URL}/tricks`, { headers: { accept: 'application/json' } })
+      if (!res.ok) throw new Error(await res.text())
+      const list = (await res.json()) as PublicTrick[]
+      if (list?.length) {
+        // Stable pick for everyone for a given day (UTC date key)
+      const dayKey = new Date().toISOString().slice(0, 10)
+      let acc = 0
+      for (const ch of dayKey) acc = (acc + ch.charCodeAt(0)) % 100000
+      const pick = list[acc % list.length]
+      setTip(pick)
+      }
+    } catch {
+      // Tip of the day is optional — ignore failures on the login screen
+    } finally {
+      setTipLoading(false)
+    }
+  }
+
+  React.useEffect(() => {
+    loadTip()
+  }, [])
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setErr('')
@@ -51,6 +89,24 @@ export default function AuthPage() {
             Sign in to access your VIP Library, Credits, and Community.
           </div>
         </div>
+
+        {tip ? (
+          <div className="mb-4">
+            <Card>
+              <CardHeader title="Tip of the day (public)" subtitle={tip.title} />
+              <CardBody>
+                <div className="text-sm text-slate-700 whitespace-pre-wrap">
+                  {tip.body}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button type="button" variant="secondary" onClick={loadTip} disabled={tipLoading}>
+                    {tipLoading ? 'Loading…' : 'Another tip'}
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        ) : null}
 
         <Card>
           <CardHeader
