@@ -59,10 +59,13 @@ const $ = (id) => document.getElementById(id);
 
 
 function openExternal(url) {
+  const u = String(url);
   try {
-    window.open(String(url), "_blank", "noopener,noreferrer");
+    const w = window.open(u, "_blank", "noopener,noreferrer");
+    // In some browsers/PWA contexts, window.open is blocked and returns null without throwing.
+    if (!w) window.location.href = u;
   } catch {
-    window.location.href = String(url);
+    window.location.href = u;
   }
 }
 
@@ -1460,6 +1463,7 @@ async function render() {
   await attachAccountHandlers();
   await attachTrickHandlers();
   await attachCommunityHandlers();
+  attachOpenUrlHandlers();
 }
 
 // First paint
