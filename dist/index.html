@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Secrets of Decoupage</title>
+
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#2e7d6b" />
+
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header id="topbar" class="topbar">
+    <div class="brand">
+      <img class="appLogo" src="./icons/icon-192.png" alt="Secrets of Decoupage" />
+      <div>
+        <div class="title">Secrets of Decoupage</div>
+        <div class="subtitle">Tips • VIP • Community</div>
+      </div>
+    </div>
+
+    <button id="installBtn" aria-label="Install app">Install</button>
+  </header>
+
+  <div id="statusBar" class="small" aria-live="polite"></div>
+
+  <main id="view"></main>
+
+  <nav id="tabs" aria-label="Bottom navigation"></nav>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

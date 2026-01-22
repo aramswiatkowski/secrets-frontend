@@ -1,26 +1,11 @@
-# Secrets of Decoupage – PWA MVP (Frontend)
+# Secrets of Decoupage PWA (Netlify-ready)
 
-This is a simple phone-friendly PWA (no build step).
+This repo is a **static** Netlify deploy (no build step).  
+Netlify uses `dist/` as the publish directory (see `netlify.toml`).
 
-## Run locally
-Use any static server:
+## Backend
+API URL is set in `dist/config.js`:
+https://secrets-backend-67g2.onrender.com
 
-```bash
-cd frontend
-python -m http.server 5173
-```
-
-Open: http://localhost:5173
-
-Set **Backend URL** to `http://localhost:8000` and click Save.
-
-## Install on phone
-- iPhone: open in Safari → Share → Add to Home Screen
-- Android: Chrome → Install app
-
-## Shopify (optional)
-Create a Shopify **Storefront API access token**, then fill:
-- your-shop.myshopify.com
-- Storefront token
-
-The Shop tab will show latest products.
+## If you still see an old layout
+Clear site data / uninstall & reinstall the PWA (service worker cache).
