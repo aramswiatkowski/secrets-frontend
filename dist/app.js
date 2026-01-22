@@ -13,6 +13,7 @@ const state = {
   shopToken: localStorage.getItem("shopToken") || "",
   communityFilter: localStorage.getItem("communityFilter") || "ALL",
   openCommentsPostId: null,
+  tipSearchPrefill: "",
 };
 
 // Safety: if someone saved a localhost API URL but the app is running online, reset to Render
@@ -55,6 +56,23 @@ function applyPostPrefix(type, text) {
 
 
 const $ = (id) => document.getElementById(id);
+
+
+function openExternal(url) {
+  try {
+    window.open(String(url), "_blank", "noopener,noreferrer");
+  } catch {
+    window.location.href = String(url);
+  }
+}
+
+function normSearch(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
+}
 
 const setStatus = (msg, cls = "") => {
   const el = $("statusBar");
@@ -165,6 +183,16 @@ function tabBar() {
 
     el.appendChild(b);
   }
+}
+
+
+function attachOpenUrlHandlers() {
+  document.querySelectorAll("[data-open-url]").forEach((b) => {
+    b.onclick = () => {
+      const url = b.getAttribute("data-open-url");
+      if (url) openExternal(url);
+    };
+  });
 }
 
 async function homeView() {
@@ -285,6 +313,35 @@ async function homeView() {
         </div>
       `}
     </div>
+
+
+<div class="item">
+  <div class="meta">
+    <div><b>Find a tip fast</b></div>
+    <span class="pill">Search</span>
+  </div>
+  <p class="muted">Type a keyword and we’ll instantly filter the Tips list.</p>
+  <input id="tip_q_home" placeholder="Search tips (e.g. 'modpodge', 'glass', 'bleeding')">
+  <div class="row" style="margin-top:10px;">
+    <button class="btn primary" data-tip-search="home">Search tips</button>
+    <button class="btn" data-go="Tricks">Open Tips</button>
+  </div>
+</div>
+
+<div class="item">
+  <div class="meta">
+    <div><b>Shop</b></div>
+    <span class="pill">New designs</span>
+  </div>
+  <p class="muted">Browse new rice papers, stickers, and bundles — or search the store.</p>
+  <input id="shop_q_home" placeholder="Search shop (e.g. 'fairy', 'owl', 'Halloween')">
+  <div class="row" style="margin-top:10px;">
+    <button class="btn primary" data-go="Shop">Open shop</button>
+    <button class="btn" data-shop-search="home">Search</button>
+    <button class="btn" data-shop-link="new">New</button>
+    <button class="btn" data-shop-link="best">Best</button>
+  </div>
+</div>
   `;
 
   return html;
@@ -383,6 +440,71 @@ document.querySelectorAll("[data-open-qa]").forEach((b) => {
       render();
     };
   });
+
+
+// Home: tip search shortcut
+document.querySelectorAll("[data-tip-search]").forEach((b) => {
+  b.onclick = () => {
+    const input = $("tip_q_home");
+    const q0 = input ? input.value.trim() : "";
+    if (!q0) return setStatus("Type a keyword first.", "danger");
+    state.tipSearchPrefill = q0;
+    state.tab = "Tricks";
+    render();
+  };
+});
+
+const tipQHome = $("tip_q_home");
+if (tipQHome) {
+  tipQHome.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const q0 = tipQHome.value.trim();
+      if (!q0) return setStatus("Type a keyword first.", "danger");
+      state.tipSearchPrefill = q0;
+      state.tab = "Tricks";
+      render();
+    }
+  });
+}
+
+// Home/Shop: shop search
+document.querySelectorAll("[data-shop-search]").forEach((b) => {
+  b.onclick = () => {
+    const scope = b.getAttribute("data-shop-search") || "shop";
+    const input = scope === "home" ? $("shop_q_home") : $("shop_q");
+    const q0 = input ? input.value.trim() : "";
+    if (!q0) return setStatus("Type a keyword first.", "danger");
+    const CFG = (window.__CONFIG__ || {});
+    const shop = (CFG.SHOP_URL || "https://www.thesecretsofdecoupage.com").replace(/\/+$/g,"");
+    openExternal(`${shop}/search?q=${encodeURIComponent(q0)}`);
+  };
+});
+
+const shopQHome = $("shop_q_home");
+if (shopQHome) {
+  shopQHome.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const q0 = shopQHome.value.trim();
+      if (!q0) return setStatus("Type a keyword first.", "danger");
+      const CFG = (window.__CONFIG__ || {});
+      const shop = (CFG.SHOP_URL || "https://www.thesecretsofdecoupage.com").replace(/\/+$/g,"");
+      openExternal(`${shop}/search?q=${encodeURIComponent(q0)}`);
+    }
+  });
+}
+
+document.querySelectorAll("[data-shop-link]").forEach((b) => {
+  b.onclick = () => {
+    const kind = b.getAttribute("data-shop-link");
+    const CFG = (window.__CONFIG__ || {});
+    const shop = (CFG.SHOP_URL || "https://www.thesecretsofdecoupage.com").replace(/\/+$/g,"");
+    if (kind === "new") return openExternal(`${shop}/collections/all?sort_by=created-descending`);
+    if (kind === "best") return openExternal(`${shop}/collections/all?sort_by=best-selling`);
+    openExternal(shop);
+  };
+});
 }
 
 
@@ -890,12 +1012,23 @@ async function attachTrickHandlers() {
   const tSearch = $("t_search");
   if (tSearch) {
     tSearch.oninput = () => {
-      const q = (tSearch.value || "").trim().toLowerCase();
+      const qRaw = (tSearch.value || "").trim();
+      const q = normSearch(qRaw);
       document.querySelectorAll("#tips_list .item").forEach((card) => {
-        const text = card.textContent.toLowerCase();
+        const text = normSearch(card.textContent);
         card.style.display = !q || text.includes(q) ? "" : "none";
       });
     };
+  }
+
+  // If Home prefilled a search, apply it once.
+  if (tSearch && state.tipSearchPrefill) {
+    const q0 = state.tipSearchPrefill;
+    state.tipSearchPrefill = "";
+    tSearch.value = q0;
+    if (typeof tSearch.oninput === "function") tSearch.oninput();
+    const qa = $("qa_search");
+    if (qa) qa.value = q0;
   }
 
   const qaSearch = $("qa_search");
@@ -1100,10 +1233,26 @@ const ACS = (CFG.CLIPSTICK_URL || "https://www.artclipstick.com");
 // VIP links (Shopify)
 const VIP_PAGE = (CFG.VIP_INFO_URL || `${SOD}/pages/vip`);
 const VIP_PRODUCT = (CFG.VIP_SUBSCRIBE_URL || `${SOD}/products/vip-membership`);
+const VIP_DIGITAL = (CFG.VIP_DIGITAL_URL || "").trim();
+const VIP_PRINT_PACK = (CFG.VIP_PRINT_PACK_URL || "").trim();
+const VIP_PRO_STUDIO = (CFG.PRO_STUDIO_URL || "").trim();
 
 let html = `
     <h2>Shop</h2>
     <p>Open our shops (and VIP) in one tap.</p>
+
+    <div class="item" style="margin-top:12px;">
+      <div class="meta">
+        <div><b>Search the shop</b></div>
+        <span class="pill">Fast</span>
+      </div>
+      <input id="shop_q" placeholder="Search the store (e.g. 'fairy', 'owl', 'Halloween')">
+      <div class="row" style="margin-top:10px;">
+        <button class="btn primary" data-shop-search="shop">Search</button>
+        <button class="btn" data-shop-link="new">New</button>
+        <button class="btn" data-shop-link="best">Best</button>
+      </div>
+    </div>
 
     <div class="list">
       <div class="item">
@@ -1113,8 +1262,8 @@ let html = `
         </div>
         <p>Browse thousands of rice papers and new designs.</p>
         <div class="row">
-          <a class="btn primary"  rel="noopener" href="${SOD}">Open shop</a>
-          <a class="btn"  rel="noopener" href="${SOD}/collections/all">All designs</a>
+          <button class="btn primary" data-open-url="${SOD}">Open shop</button>
+          <button class="btn" data-open-url="${SOD}/collections/all">All designs</button>
         </div>
       </div>
 
@@ -1125,8 +1274,8 @@ let html = `
         </div>
         <p>Clipart bundles, stickers and digital downloads.</p>
         <div class="row">
-          <a class="btn primary"  rel="noopener" href="${ACS}">Open shop</a>
-          <a class="btn"  rel="noopener" href="${ACS}/collections/all">All products</a>
+          <button class="btn primary" data-open-url="${ACS}">Open shop</button>
+          <button class="btn" data-open-url="${ACS}/collections/all">All products</button>
         </div>
       </div>
 
@@ -1138,17 +1287,17 @@ let html = `
         <p>Extra tutorials, tips, and members-only content inside the app.</p>
         ${VIP_DIGITAL || VIP_PRINT_PACK || VIP_PRO_STUDIO ? `
   <div class="row">
-    ${VIP_DIGITAL ? `<a class="btn primary" rel="noopener" href="${VIP_DIGITAL}">VIP Digital</a>` : ``}
-    ${VIP_PRINT_PACK ? `<a class="btn primary" rel="noopener" href="${VIP_PRINT_PACK}">VIP Print Pack</a>` : ``}
-    ${VIP_PRO_STUDIO ? `<a class="btn primary" rel="noopener" href="${VIP_PRO_STUDIO}">PRO Studio</a>` : ``}
+    ${VIP_DIGITAL ? `<button class="btn primary" data-open-url="${VIP_DIGITAL}">VIP Digital</button>` : ``}
+    ${VIP_PRINT_PACK ? `<button class="btn primary" data-open-url="${VIP_PRINT_PACK}">VIP Print Pack</button>` : ``}
+    ${VIP_PRO_STUDIO ? `<button class="btn primary" data-open-url="${VIP_PRO_STUDIO}">PRO Studio</button>` : ``}
   </div>
   <div class="row" style="margin-top:8px;">
-    <a class="btn" rel="noopener" href="${VIP_PAGE}">What you get</a>
+    <button class="btn" data-open-url="${VIP_PAGE}">What you get</button>
   </div>
 ` : `
   <div class="row">
-    <a class="btn primary" rel="noopener" href="${VIP_PRODUCT}">Become VIP</a>
-    <a class="btn" rel="noopener" href="${VIP_PAGE}">What you get</a>
+    <button class="btn primary" data-open-url="${VIP_PRODUCT}">Become VIP</button>
+    <button class="btn" data-open-url="${VIP_PAGE}">What you get</button>
   </div>
 `}
         

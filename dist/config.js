@@ -8,6 +8,6 @@ window.__CONFIG__.CLIPSTICK_URL = "https://www.artclipstick.com";
 // If you have 3 plan products, set VIP_DIGITAL_URL / VIP_PRINT_PACK_URL / PRO_STUDIO_URL.
 window.__CONFIG__.VIP_SUBSCRIBE_URL = "";
 window.__CONFIG__.VIP_INFO_URL = "";
-window.__CONFIG__.VIP_DIGITAL_URL = "https://thesecretsofdecoupage.com/products/vip-digital-membership-9-99-month-10-vip-discount?_pos=1&_sid=68354b554&_ss=r";
-window.__CONFIG__.VIP_PRINT_PACK_URL = "https://thesecretsofdecoupage.com/products/vip-print-pack-membership-14-99-month-4-credits-2-cliparts-10-discount?_pos=3&_sid=68354b554&_ss=r";
-window.__CONFIG__.PRO_STUDIO_URL = "https://thesecretsofdecoupage.com/products/pro-studio-membership-24-99-month-8-credits-4-cliparts-12-discount?_pos=2&_sid=68354b554&_ss=r";
+window.__CONFIG__.VIP_DIGITAL_URL = "";
+window.__CONFIG__.VIP_PRINT_PACK_URL = "";
+window.__CONFIG__.PRO_STUDIO_URL = "";

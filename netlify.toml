@@ -1,6 +1,6 @@
 [build]
   publish = "dist"
-  command = ""
+  command = "echo 'skip build'"
 
 [[redirects]]
   from = "/*"
