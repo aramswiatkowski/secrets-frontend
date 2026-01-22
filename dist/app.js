@@ -235,7 +235,7 @@ async function homeView() {
 
     <div class="item">
       <div class="meta">
-        <div><b>Wasze prace</b></div>
+        <div><b>Projects</b></div>
         <span class="pill">${works.length ? `${works.length} new` : "—"}</span>
       </div>
       ${postsErr ? `<p class="muted">${escapeHtml(postsErr)}</p>` : `
@@ -262,7 +262,7 @@ async function homeView() {
 
     <div class="item">
       <div class="meta">
-        <div><b>Pytania i odpowiedzi</b></div>
+        <div><b>Questions &amp; Answers</b></div>
         <span class="pill">${questions.length ? "Live" : "—"}</span>
       </div>
       ${postsErr ? `<p class="muted">${escapeHtml(postsErr)}</p>` : `
@@ -767,7 +767,7 @@ if (supportBtn) {
 
       statusEl.textContent = "Sent ✅ We’ll reply as soon as we can.";
       msgEl.value = "";
-      if (fileEl) fileEl.value = "";
+      
     } catch (e) {
       statusEl.textContent = "Could not send. Please try again.";
     }
@@ -833,7 +833,7 @@ async function tricksView() {
             </div>
             <p>${escapeHtml(t.body).replace(/\n/g,"<br>")}</p>
             ${t.media_url ? `<a class="link" rel="noreferrer" href="${t.media_url}" target="_blank">Open media</a>` : ""}
-            ${canCreate ? `<div class="row" style="margin-top:10px;"><button class="btn danger" data-deltrick="${t.id}">Delete</button></div>` : ``}
+            
           </div>
         `).join("")}
       </div>
@@ -886,20 +886,6 @@ async function attachTrickHandlers() {
       }
     };
   }
-
-  document.querySelectorAll("[data-deltrick]").forEach((b) => {
-    b.onclick = async () => {
-      if (!confirm("Delete this tip?")) return;
-      try {
-        const id = b.getAttribute("data-deltrick");
-        await api(`/tricks/${id}`, { method: "DELETE" });
-        setStatus("Deleted.", "success");
-        render();
-      } catch (e) {
-        setStatus("Could not delete: " + e.message, "danger");
-      }
-    };
-  });
 
   const tSearch = $("t_search");
   if (tSearch) {
@@ -969,10 +955,13 @@ async function communityView() {
     <p>Like a Facebook group: share projects, ask questions, and answer in comments.</p>
 
     <div class="row" style="margin:10px 0 14px;">
-      <button class="btn ${filter==="ALL" ? "primary" : ""}" data-filter="ALL">All</button>
-      <button class="btn ${filter==="WORKS" ? "primary" : ""}" data-filter="WORKS">Wasze prace</button>
-      <button class="btn ${filter==="QUESTIONS" ? "primary" : ""}" data-filter="QUESTIONS">Questions</button>
-    </div>
+  <label class="small muted" style="margin-right:8px;">View:</label>
+  <select id="community_filter" style="max-width:220px;">
+    <option value="ALL">All</option>
+    <option value="WORKS">Projects</option>
+    <option value="QUESTIONS">Questions</option>
+  </select>
+</div>
   `;
 
   if (state.me) {
@@ -987,7 +976,6 @@ async function communityView() {
           </select>
         </div>
         <textarea id="p_text" placeholder="Write your post…"></textarea>
-        <input id="p_file" type="file" accept="image/*">
         <input id="p_img" placeholder="Image URL (optional)">
         <button class="btn primary" id="p_add">Post</button>
         <div class="small muted" style="margin-top:8px;">Tip: Questions can be answered in comments.</div>
@@ -1027,16 +1015,18 @@ async function communityView() {
 }
 
 async function attachCommunityHandlers() {
-  document.querySelectorAll("[data-filter]").forEach((b) => {
-    b.onclick = () => {
-      const f = b.getAttribute("data-filter");
-      state.communityFilter = f;
-      localStorage.setItem("communityFilter", f);
-      render();
-    };
-  });
+  const cf = $("community_filter");
+if (cf) {
+  cf.value = filter;
+  cf.onchange = () => {
+    const f = cf.value;
+    state.communityFilter = f;
+    localStorage.setItem("communityFilter", f);
+    render();
+  };
+}
 
-  const add = $("p_add");
+const add = $("p_add");
   if (add) {
     add.onclick = async () => {
       try {
@@ -1045,20 +1035,11 @@ async function attachCommunityHandlers() {
         if (!textRaw) return setStatus("Write something first.", "danger");
         const text = applyPostPrefix(type === "question" ? "question" : "work", textRaw);
 
-        const fileEl = $("p_file");
         const urlEl = $("p_img");
         let image_url = (urlEl?.value || "").trim() || null;
 
-        const file = fileEl?.files?.[0];
-        if (file) {
-          const fd = new FormData();
-          fd.append("file", file);
-          setStatus("Uploading image…", "success");
-          const up = await apiForm("/media/upload", fd);
-          image_url = up.url || null;
-        }
-
-        await api("/posts", { method: "POST", body: JSON.stringify({ text, image_url }) });
+        // Image uploads are disabled in this MVP. Use an Image URL instead.
+await api("/posts", { method: "POST", body: JSON.stringify({ text, image_url }) });
         setStatus("Posted.", "success");
         render();
       } catch (e) {
@@ -1111,16 +1092,16 @@ async function attachCommunityHandlers() {
 async function shopView() {
   // These are the only links you need to monetise on day 1.
   // Later you can change them in ONE place (here).
-  const SOD = "https://www.thesecretsofdecoupage.com";
-  const ACS = "https://www.artclipstick.com";
+  // Shop links — set these in dist/config.js (recommended)
+const CFG = (window.__CONFIG__ || {});
+const SOD = (CFG.SHOP_URL || "https://www.thesecretsofdecoupage.com");
+const ACS = (CFG.CLIPSTICK_URL || "https://www.artclipstick.com");
 
-  // Create these in Shopify whenever you're ready:
-  // - /pages/vip   (VIP sales page)
-  // - /products/vip-membership  (VIP product/subscription)
-  const VIP_PAGE = `${SOD}/pages/vip`;
-  const VIP_PRODUCT = `${SOD}/products/vip-membership`;
+// VIP links (Shopify)
+const VIP_PAGE = (CFG.VIP_INFO_URL || `${SOD}/pages/vip`);
+const VIP_PRODUCT = (CFG.VIP_SUBSCRIBE_URL || `${SOD}/products/vip-membership`);
 
-  let html = `
+let html = `
     <h2>Shop</h2>
     <p>Open our shops (and VIP) in one tap.</p>
 
@@ -1155,11 +1136,22 @@ async function shopView() {
           <span class="pill">VIP</span>
         </div>
         <p>Extra tutorials, tips, and members-only content inside the app.</p>
-        <div class="row">
-          <a class="btn primary"  rel="noopener" href="${VIP_PRODUCT}">Become VIP</a>
-          <a class="btn"  rel="noopener" href="${VIP_PAGE}">What you get</a>
-        </div>
-        <p class="small" style="margin-top:8px;">Tip: if those pages don’t exist yet, create them in Shopify and the buttons will start working immediately.</p>
+        ${VIP_DIGITAL || VIP_PRINT_PACK || VIP_PRO_STUDIO ? `
+  <div class="row">
+    ${VIP_DIGITAL ? `<a class="btn primary" rel="noopener" href="${VIP_DIGITAL}">VIP Digital</a>` : ``}
+    ${VIP_PRINT_PACK ? `<a class="btn primary" rel="noopener" href="${VIP_PRINT_PACK}">VIP Print Pack</a>` : ``}
+    ${VIP_PRO_STUDIO ? `<a class="btn primary" rel="noopener" href="${VIP_PRO_STUDIO}">PRO Studio</a>` : ``}
+  </div>
+  <div class="row" style="margin-top:8px;">
+    <a class="btn" rel="noopener" href="${VIP_PAGE}">What you get</a>
+  </div>
+` : `
+  <div class="row">
+    <a class="btn primary" rel="noopener" href="${VIP_PRODUCT}">Become VIP</a>
+    <a class="btn" rel="noopener" href="${VIP_PAGE}">What you get</a>
+  </div>
+`}
+        
       </div>
     </div>
   `;
