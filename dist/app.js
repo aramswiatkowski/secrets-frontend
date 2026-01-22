@@ -59,13 +59,27 @@ const $ = (id) => document.getElementById(id);
 
 
 function openExternal(url) {
-  const u = String(url);
+  const u = String(url || "").trim();
+  if (!u) return;
+
+  const isStandalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (navigator.standalone === true);
   try {
-    const w = window.open(u, "_blank", "noopener,noreferrer");
-    // In some browsers/PWA contexts, window.open is blocked and returns null without throwing.
-    if (!w) window.location.href = u;
-  } catch {
-    window.location.href = u;
+    // iOS PWA / popup blockers: safest is same-tab navigation.
+    if (isStandalone) {
+      window.location.href = u;
+      return;
+    }
+
+    // Best cross-browser behaviour: anchor click (counts as a user gesture).
+    const a = document.createElement("a");
+    a.href = u;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (e) {
+    try { window.location.assign(u); } catch { window.location.href = u; }
   }
 }
 
@@ -223,6 +237,15 @@ async function homeView() {
   const works = posts.filter(p => postTypeFromText(p.text) !== "question" && !!p.image_url).slice(0, 6);
   const questions = posts.filter(p => postTypeFromText(p.text) === "question").slice(0, 5);
 
+  const CFG = (window.__CONFIG__ || {});
+  const SOD = (CFG.SHOP_URL || "https://www.thesecretsofdecoupage.com").replace(/\/+$/g,"");
+  const VIP_PAGE = (CFG.VIP_INFO_URL || "").trim();
+  const VIP_DIGITAL = (CFG.VIP_DIGITAL_URL || "").trim();
+  const VIP_PRINT_PACK = (CFG.VIP_PRINT_PACK_URL || "").trim();
+  const VIP_PRO_STUDIO = (CFG.PRO_STUDIO_URL || "").trim();
+  const VIP_PRODUCT = (CFG.VIP_SUBSCRIBE_URL || VIP_DIGITAL || VIP_PRINT_PACK || VIP_PRO_STUDIO || `${SOD}/pages/vip`).trim();
+
+
   const preview = (t, fallback="") => {
     const s = stripPostPrefix(String(t || "")).trim();
     const safe = escapeHtml((s || fallback));
@@ -345,6 +368,29 @@ async function homeView() {
     <button class="btn" data-shop-link="best">Best</button>
   </div>
 </div>
+
+
+<div class="item">
+  <div class="meta">
+    <div><b>VIP Membership</b></div>
+    <span class="pill">VIP</span>
+  </div>
+  <p class="muted">Choose your plan on Shopify (price shows in your local currency).</p>
+  ${VIP_DIGITAL || VIP_PRINT_PACK || VIP_PRO_STUDIO ? `
+    <div class="row" style="margin-top:10px; flex-wrap:wrap;">
+      ${VIP_DIGITAL ? `<button class="btn primary" data-open-url="${VIP_DIGITAL}">VIP Digital</button>` : ``}
+      ${VIP_PRINT_PACK ? `<button class="btn primary" data-open-url="${VIP_PRINT_PACK}">VIP Print Pack</button>` : ``}
+      ${VIP_PRO_STUDIO ? `<button class="btn primary" data-open-url="${VIP_PRO_STUDIO}">PRO Studio</button>` : ``}
+    </div>
+    ${VIP_PAGE ? `<div class="row" style="margin-top:8px;"><button class="btn" data-open-url="${VIP_PAGE}">What you get</button></div>` : ``}
+  ` : `
+    <div class="row" style="margin-top:10px;">
+      <button class="btn primary" data-open-url="${VIP_PRODUCT}">Become VIP</button>
+      ${VIP_PAGE ? `<button class="btn" data-open-url="${VIP_PAGE}">What you get</button>` : ``}
+    </div>
+  `}
+</div>
+
   `;
 
   return html;
@@ -1234,11 +1280,12 @@ const SOD = (CFG.SHOP_URL || "https://www.thesecretsofdecoupage.com");
 const ACS = (CFG.CLIPSTICK_URL || "https://www.artclipstick.com");
 
 // VIP links (Shopify)
-const VIP_PAGE = (CFG.VIP_INFO_URL || `${SOD}/pages/vip`);
-const VIP_PRODUCT = (CFG.VIP_SUBSCRIBE_URL || `${SOD}/products/vip-membership`);
+const VIP_PAGE = (CFG.VIP_INFO_URL || "").trim();
 const VIP_DIGITAL = (CFG.VIP_DIGITAL_URL || "").trim();
 const VIP_PRINT_PACK = (CFG.VIP_PRINT_PACK_URL || "").trim();
 const VIP_PRO_STUDIO = (CFG.PRO_STUDIO_URL || "").trim();
+// Fallback for a single "Become VIP" button if needed
+const VIP_PRODUCT = (CFG.VIP_SUBSCRIBE_URL || VIP_DIGITAL || VIP_PRINT_PACK || VIP_PRO_STUDIO || `${SOD}/pages/vip`).trim();
 
 let html = `
     <h2>Shop</h2>
@@ -1294,13 +1341,13 @@ let html = `
     ${VIP_PRINT_PACK ? `<button class="btn primary" data-open-url="${VIP_PRINT_PACK}">VIP Print Pack</button>` : ``}
     ${VIP_PRO_STUDIO ? `<button class="btn primary" data-open-url="${VIP_PRO_STUDIO}">PRO Studio</button>` : ``}
   </div>
-  <div class="row" style="margin-top:8px;">
+  ${VIP_PAGE ? `<div class="row" style="margin-top:8px;">
     <button class="btn" data-open-url="${VIP_PAGE}">What you get</button>
-  </div>
+  </div>` : ``}
 ` : `
   <div class="row">
     <button class="btn primary" data-open-url="${VIP_PRODUCT}">Become VIP</button>
-    <button class="btn" data-open-url="${VIP_PAGE}">What you get</button>
+    ${VIP_PAGE ? `<button class="btn" data-open-url="${VIP_PAGE}">What you get</button>` : ``}
   </div>
 `}
         
